@@ -3,6 +3,7 @@
 ## than diversity determines ecosystem functioning 
 ##
 ## Date: 08-July-2024
+## Updated: 10-July-2024
 ##
 ## Author: Lorena Pinheiro-Silva
 ##
@@ -14,6 +15,9 @@ set.seed(1234)
 
 # To avoid scientific notaion
 options(scipen=999)
+
+# Color pallet
+cols=c("palegreen", "limegreen","forestgreen","darkgreen") 
 
 ##=============================================
 ## Installing and loading packages 
@@ -29,6 +33,11 @@ if(!require(dataMaid)){install.packages("dataMaid");library(dataMaid)}
 if(!require(conover.test)){install.packages("conover.test");library(conover.test)}
 if(!require(Rmisc)){install.packages("Rmisc");library(Rmisc)}
 if(!require(lmPerm)){install.packages("lmPerm");library(lmPerm)}
+if(!require(ggthemes)){install.packages("ggthemes");library(ggthemes)}
+if(!require(patchwork)){install.packages("patchwork");library(patchwork)}
+if(!require(rcompanion)){install.packages("rcompanion");library(rcompanion)}
+if(!require(ggpubr)){install.packages("ggpubr");library(ggpubr)}
+
 
 ##=============================================
 ## Importing data 
@@ -139,16 +148,40 @@ cld_result<- cld_result %>%
   dplyr::arrange(Group)
 
 # Preparing the data to make the plot
-df1_CAS <- data%>%summarySE(measurevar="CAS_dens", groupvars="interaction", na.rm = T)
+df1 <- data%>%summarySE(measurevar="CAS_dens", groupvars="interaction", na.rm = T)
 
 # Adding the letters to the data.frame
-df1_CAS$Comp <- cld_result$Letter
+df1$Comp <- cld_result$Letter
 
 # Cleaning the data.frame
-df1_CAS<-df1_CAS%>%
+df1<-df1%>%
   dplyr::mutate(P=c("0", "10", "100", "1000", "0", "10", "100", "1000"))%>%
   dplyr::mutate(PL=c("APL", "APL", "APL", "APL", "NPL", "NPL", "NPL", "NPL"))%>%
-  dplyr::mutate_at(c("P", "PL"), as.factor)
+  dplyr::mutate_at(c("P", "PL", "Comp"), as.factor)%>%
+  dplyr::mutate_at(c("CAS_dens", "sd", "se", "ci"), as.numeric)
+
+# Figure 1a
+A = ggplot(df1, aes(colour=P, y=CAS_dens, x=P)) + 
+  geom_point(position=position_dodge(0.9), size=3) + 
+  geom_errorbar(aes(ymin=CAS_dens-se, ymax=CAS_dens+se), width=.2,
+                position=position_dodge(0.9)) +
+  geom_jitter(data = data, aes(y=CAS_dens), alpha=0.3, position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8)) +
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  theme_few() +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        panel.border = element_blank(),
+        axis.text.x = element_text(colour="black", size = 14, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.position = "none") +
+  geom_text(aes(label=Comp, y = (CAS_dens + se) + 0.08), size = 4.5, color = "Gray25", show.legend = FALSE, position = position_dodge(0.9))+
+  labs(x = "",
+       y = "CAS")+
+  guides(colour = guide_legend(expression(paste("P-addition levels"))))
 
 ## SD ----
 
@@ -197,16 +230,41 @@ cld_result<- cld_result %>%
   dplyr::arrange(Group)
 
 # Preparing the data to make the plot
-df2_SD <- data%>%summarySE(measurevar="SDshn_dens", groupvars="interaction", na.rm = T)
+df2 <- data%>%summarySE(measurevar="SDshn_dens", groupvars="interaction", na.rm = T)
 
 # Adding the letters to the data.frame
-df2_SD$Comp <- cld_result$Letter
+df2$Comp <- cld_result$Letter
 
 # Cleaning the data.frame
-df2_SD<-df2_SD%>%
+df2<-df2%>%
   dplyr::mutate(P=c("0", "10", "100", "1000", "0", "10", "100", "1000"))%>%
   dplyr::mutate(PL=c("APL", "APL", "APL", "APL", "NPL", "NPL", "NPL", "NPL"))%>%
-  dplyr::mutate_at(c("P", "PL"), as.factor)
+  dplyr::mutate_at(c("P", "PL", "Comp"), as.factor)%>%
+  dplyr::mutate_at(c("SDshn_dens", "sd", "se", "ci"), as.numeric)
+
+# Figure 1b
+B = ggplot(df2, aes(colour=P, y=SDshn_dens, x=P)) + 
+  geom_point(position=position_dodge(0.9), size=3) + 
+  geom_errorbar(aes(ymin=SDshn_dens-se, ymax=SDshn_dens+se), width=.2,
+                position=position_dodge(0.9)) +
+  geom_jitter(data = data, aes(y=SDshn_dens), alpha=0.3, position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8)) +
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  theme_few() +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        panel.border = element_blank(),
+        axis.text.x = element_text(colour="black", size = 14, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.position = "none") +
+  geom_text(aes(label=Comp, y = (SDshn_dens + se) + 0.15), size = 4.5, color = "Gray25", show.legend = FALSE, position = position_dodge(0.9))+
+  labs(x = "",
+       y = "SD")+
+  guides(colour = guide_legend(expression(paste("P-addition levels"))))
+
 
 ## RICHNESS ----
 
@@ -255,16 +313,40 @@ cld_result<- cld_result %>%
   dplyr::arrange(Group)
 
 # Preparing the data to make the plot
-df3_S <- data%>%summarySE(measurevar="S", groupvars="interaction", na.rm = T)
+df3 <- data%>%summarySE(measurevar="S", groupvars="interaction", na.rm = T)
 
 # Adding the letters to the data.frame
-df3_S$Comp <- cld_result$Letter
+df3$Comp <- cld_result$Letter
 
 # Cleaning the data.frame
-df3_S<-df3_S%>%
+df3<-df3%>%
   dplyr::mutate(P=c("0", "10", "100", "1000", "0", "10", "100", "1000"))%>%
   dplyr::mutate(PL=c("APL", "APL", "APL", "APL", "NPL", "NPL", "NPL", "NPL"))%>%
-  dplyr::mutate_at(c("P", "PL"), as.factor)
+  dplyr::mutate_at(c("P", "PL", "Comp"), as.factor)%>%
+  dplyr::mutate_at(c("S", "sd", "se", "ci"), as.numeric)
+
+# Figure 1c
+C = ggplot(df3, aes(colour=P, y=S, x=P)) + 
+  geom_point(position=position_dodge(0.9), size=3) + 
+  geom_errorbar(aes(ymin=S-se, ymax=S+se), width=.2,
+                position=position_dodge(0.9)) +
+  geom_jitter(data = data, aes(y=S), alpha=0.3, position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8)) +
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  theme_few() +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        panel.border = element_blank(),
+        axis.text.x = element_text(colour="black", size = 14, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = -1.5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.position = "none") +
+  geom_text(aes(label=Comp, y = (S + se) + 0.6), size = 4.5, color = "Gray25", show.legend = FALSE, position = position_dodge(0.9))+
+  labs(x = "P-addition levels",
+       y = "S")+
+  guides(colour = guide_legend(expression(paste("P-addition levels"))))
 
 ## RUE ----
 
@@ -314,17 +396,64 @@ cld_result<- cld_result %>%
   dplyr::arrange(Group)
 
 # Preparing the data to make the plot
-df4_RUE <- data%>%summarySE(measurevar="RUEzp_D65", groupvars="interaction", na.rm = T)
+df4 <- data%>%summarySE(measurevar="RUEzp_D65", groupvars="interaction", na.rm = T)
 
 # Adding the letters to the data.frame
-df4_RUE$Comp <- cld_result$Letter
+df4$Comp <- cld_result$Letter
 
 # Cleaning the data.frame
-df4_RUE<-df4_RUE%>%
+df4<-df4%>%
   dplyr::mutate(P=c("0", "10", "100", "1000", "0", "10", "100", "1000"))%>%
   dplyr::mutate(PL=c("APL", "APL", "APL", "APL", "NPL", "NPL", "NPL", "NPL"))%>%
-  dplyr::mutate_at(c("P", "PL"), as.factor)
+  dplyr::mutate_at(c("P", "PL", "Comp"), as.factor)%>%
+  dplyr::mutate_at(c("RUEzp_D65", "sd", "se", "ci"), as.numeric)
 
+# Figure 1d
+D = ggplot(df4, aes(colour=P, y=log(RUEzp_D65), x=P)) + 
+  geom_point(position=position_dodge(0.9), size=3) + 
+  geom_errorbar(aes(ymin=log(RUEzp_D65-se), ymax=log(RUEzp_D65+se)), width=.2,
+                position=position_dodge(0.9)) +
+  geom_jitter(data = data, aes(y=log(RUEzp_D65)), alpha=0.3, position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8)) +
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  theme_few() +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        panel.border = element_blank(),
+        axis.text.x = element_text(colour="black", size = 14, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = -1.5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = 0.5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.position = "none") +  
+  geom_text(aes(label=Comp, y = log(RUEzp_D65 + se)+0.4), size = 4.5, color = "Gray25", show.legend = FALSE, position = position_dodge(0.9))+
+  labs(x = "P-addition levels",
+       y = expression(paste("ln RUE"[ZP])))+
+  guides(colour = guide_legend(expression(paste("P-addition levels"))))
+
+## Figure 1----
+Fig1<- (A | B) / (C | D)
+
+Fig1<-Fig1+plot_annotation(tag_levels = c("a", "b", "c", "d"), tag_suffix = ')')& 
+  theme(plot.tag = element_text(face="bold"))
+Fig1
+
+tiff(filename= "Fig1.tif",
+     height=5800,
+     width=7600,
+     units="px",
+     res=800,
+     compression="lzw")
+plot(Fig1)
+dev.off()
+
+png(filename= "Fig1.png",
+    height=5800,
+    width=7600,
+    units="px",
+    res=800)
+plot(Fig1)
+dev.off()
 
 ##=============================================
 ## variation partitioning
@@ -503,3 +632,107 @@ rda.mod16 <- rda(log(data$RUEzp_D65) ~
                    Condition(data$CAS_dens) + 
                    data$PL)
 anova(rda.mod16, step=200, perm.max=999) 
+
+##=============================================
+## Correlation plot (Figure S1)
+##=============================================
+A = ggscatter(
+  data, x = "SDshn_dens", y = "CAS_dens",
+  color = "P",
+  alpha = 0.7,
+  size=3,
+  rug=T) +
+  scale_x_continuous(limits=c(-1,4.5), expand=c(0,0))+
+  scale_y_continuous(limits=c(0,3.5), expand=c(0,0))+
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
+  stat_cor(label.x=0.1, method = "spearman") +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        axis.text.x = element_text(colour="black", size = 13, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 13, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        legend.key = element_blank(), # Background underneath legend keys
+        legend.background = element_blank()) +
+  labs(title = NULL, y= "CAS (mm)", x = "SD")
+
+B = ggscatter(
+  data, x = "S", y = "CAS_dens",
+  color = "P",
+  alpha = 0.7,
+  size=3,
+  rug=T) +
+  scale_y_continuous(limits=c(0,3.5), expand=c(0,0))+
+  scale_x_continuous(limits=c(4,16.5), expand=c(0,0))+
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
+  stat_cor(label.x=4.3, method = "spearman") +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        axis.text.x = element_text(colour="black", size = 13, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 13, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.position = "none",
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        legend.key = element_blank(), # Background underneath legend keys
+        legend.background = element_blank()) +
+  labs(title = NULL, x= "S", y = "CAS (mm)")
+
+C = ggscatter(
+  data, x = "S", y = "SDshn_dens",
+  color = "P",
+  alpha = 0.7,
+  size=3,
+  rug=T) +
+  scale_y_continuous(limits=c(-1,4.5), expand=c(0,0))+
+  scale_x_continuous(limits=c(4,16.5), expand=c(0,0))+
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  facet_wrap(~PL) +
+  geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
+  stat_cor(label.x=4.3, method = "spearman") +
+  theme(strip.background = element_rect(colour="black", fill="white"),
+        strip.text = element_text(size = 14),
+        axis.text.x = element_text(colour="black", size = 13, vjus = .5,angle = 0),
+        axis.text.y = element_text(colour="black", size = 13, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line = element_line(size=0.5, colour = "black"),
+        legend.position = "none",
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        legend.key = element_blank(), # Background underneath legend keys
+        legend.background = element_blank()) +
+  labs(title = NULL, x= "S", y = "SD")
+
+FigS1<- A / B / C
+
+FigS1<-FigS1+plot_annotation(tag_levels = c("a", "b", "c"), tag_suffix = ')')& 
+  theme(plot.tag = element_text(face="bold"))
+FigS1
+
+tiff(filename= "FigS1.tif",
+     height=7000,
+     width=4400,
+     units="px",
+     res=800,
+     compression="lzw")
+print(FigS1)
+dev.off()
+
+png(filename= "FigS1.png",
+    height=7000,
+    width=4400,
+    units="px",
+    res=800)
+plot(FigS1)
+dev.off()
+
