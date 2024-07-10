@@ -13,7 +13,7 @@
 # To make reproducible outputs
 set.seed(1234) 
 
-# To avoid scientific notaion
+# To avoid scientific notation
 options(scipen=999)
 
 # Color pallet
