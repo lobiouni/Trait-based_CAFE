@@ -5,7 +5,8 @@
 ## Date: 08-July-2024
 ## Last updated: 23-June-2025
 ##
-## Author: Lorena Pinheiro-Silva
+## Author: Lorena Pinheiro-Silva, Andros T. Gianuca, Luc De Meester,
+## Steven A. J. Declerck
 ##
 ## Encoding: UTF-8
 ###############################################################
@@ -37,6 +38,8 @@ if(!require(ggthemes)){install.packages("ggthemes");library(ggthemes)}
 if(!require(patchwork)){install.packages("patchwork");library(patchwork)}
 if(!require(rcompanion)){install.packages("rcompanion");library(rcompanion)}
 if(!require(ggpubr)){install.packages("ggpubr");library(ggpubr)}
+if(!require(scales)){install.packages("scales");library(scales)}
+if(!require(grid)){install.packages("grid");library(grid)}
 
 
 ##=============================================
@@ -422,7 +425,7 @@ D = ggplot(df4, aes(colour=P, y=log(RUEzp_D65), x=P)) +
   geom_point(position=position_dodge(0.9), size=3) + 
   geom_errorbar(aes(ymin=log(RUEzp_D65-se), ymax=log(RUEzp_D65+se)), width=.2,
                 position=position_dodge(0.9)) +
-  geom_jitter(data = RUE, aes(y=log(RUEzp_D65)), alpha=0.3, position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8)) +
+  geom_jitter(data = data, aes(y=log(RUEzp_D65)), alpha=0.3, position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8)) +
   scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
   facet_wrap(~PL) +
   theme_few() +
@@ -650,7 +653,7 @@ msw <- ssw / dfw
 
 # Calculate the pseudo-F statistic
 pseudo_F <- msb / msw
-round(pseudo_F, 3) 
+round(pseudo_F, 4) 
 
 ## S: PL term----
 # summary 
@@ -675,7 +678,7 @@ msw <- ssw / dfw
 
 # Calculate the pseudo-F statistic
 pseudo_F <- msb / msw
-round(pseudo_F, 3) 
+round(pseudo_F, 4) 
 
 ## S: PxPL term----
 # summary
@@ -837,8 +840,8 @@ plot(mod2,
 
 # Testing the model
 rda.mod5 <- rda(log(data$RUEzp_D65) ~ 
-                  data$CAS_dens+ 
                   data$SDshn_dens+ 
+                  data$CAS_dens+ 
                   data$S)
 anova(rda.mod5, step=200, perm.max=999) 
 
@@ -862,7 +865,6 @@ rda.mod8 <- rda(log(data$RUEzp_D65) ~
                   Condition(data$CAS_dens) + 
                   data$S)
 anova(rda.mod8, step=200, perm.max=999)
-
 
 #### mod3: RUE ~ SD, CAS and P-addition (Figure 3c) ####
 
@@ -906,10 +908,6 @@ rda.mod12 <- rda(log(data$RUEzp_D65) ~
                    Condition(data$CAS_dens)+
                    data$P)
 anova(rda.mod12, step=200, perm.max=999) 
-
-
-
-
 
 
 #### mod4: RUE ~ SD, CAS and habitat heterogeneity (Figure 3d) ####
@@ -956,6 +954,136 @@ rda.mod16 <- rda(log(data$RUEzp_D65) ~
 anova(rda.mod16, step=200, perm.max=999) 
 
 ##=============================================
+## Figure 4
+##=============================================
+
+cols=c("palegreen", "limegreen","forestgreen","darkgreen") 
+
+A = ggplot(data, aes(SDshn_dens, log(RUEzp_D65), color = as.factor(P))) +
+  geom_point(aes(shape = factor(PL)), size = 3, fill = as.factor(data$P), alpha = 0.7) +
+  geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
+  #ggpubr::stat_cor(aes(group = 1), label.y=7.4, label.x=0.07, show.legend = FALSE, p.accuracy=0.001, method = "spearman")+
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  scale_y_continuous(limits = c(-2, 8), expand = expansion(mult = c(0, 0)), oob=rescale_none) +
+  theme_bw()+
+  theme(text = element_text(size = 14),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        panel.border = element_rect(fill=NA, colour="black", linetype = "solid", linewidth=0.5),
+        strip.text.x = element_blank(),
+        plot.title = element_blank(),
+        plot.margin=unit(c(0.3, 0.3, 0.3, 0.3),"cm"),
+        axis.text.x = element_text(colour="black", size = 14, angle = 0, vjus = 1),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = - 1.5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        legend.title = element_text(size = 14),
+        legend.background = element_blank(), 
+        legend.position = "none",
+        legend.key = element_rect(fill = "white", colour = "white"),
+        legend.text = element_text(size = 14))+ 
+  labs(title = NULL, 
+       x = "SD",
+       y = expression(paste("ln RUE"[ZP])))+ 
+  guides(color=guide_legend(title=expression(paste("P-addition\nlevels (µg/L)")), order = 1),
+         shape = guide_legend(title = "HH", order = 2))+
+  # Add a custom annotation with the updated expression for correlation and p-value
+  annotation_custom(
+    grob = textGrob(expression(paste(italic("r"), " = 0.38, ", italic("p"), " = 0.033")),
+                    x = unit(0.4, "npc"), y = unit(0.90, "npc"),
+                    gp = gpar(fontsize = 14, col = "black")))
+
+A
+
+B = ggplot(data, aes(CAS_dens, log(RUEzp_D65), color = as.factor(P))) +
+  geom_point(aes(shape = factor(PL)), size = 3, fill = as.factor(data$P), alpha = 0.7) +
+  geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
+  #ggpubr::stat_cor(aes(group = 1), label.y=7.4, label.x=0.7, show.legend = FALSE, p.accuracy=0.001, method = "spearman")+
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  scale_y_continuous(limits = c(-2, 8), expand = expansion(mult = c(0, 0)), oob=rescale_none) +
+  theme_bw()+
+  theme(text = element_text(size = 14),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        panel.border = element_rect(fill=NA, colour="black", linetype = "solid", linewidth=0.5),
+        strip.text.x = element_blank(),
+        plot.title = element_blank(),
+        plot.margin=unit(c(0.3, 0.3, 0.3, 0.3),"cm"),
+        axis.text.x = element_text(colour="black", size = 14, angle = 0, vjus = 1),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = - 1.5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        #axis.line = element_line(linewidth=0.5, colour = "black"),
+        legend.title = element_text(size = 14),
+        legend.background = element_blank(), 
+        legend.position = "right",
+        legend.key = element_rect(fill = "white", colour = "white"),
+        legend.text = element_text(size = 14))+
+  labs(title = NULL, 
+       x = expression(paste("CWM"[BS], "(mm)")),
+       y = expression(paste("ln RUE"[ZP])))+ 
+  guides(color=guide_legend(title=expression(paste("P-addition\nlevels (µg/L)")), order = 1),
+         shape = guide_legend(title = "HH"), order =2)+
+  # Add a custom annotation with the updated expression for correlation and p-value
+  annotation_custom(
+    grob = textGrob(expression(paste(italic("r"), " = 0.46, ", italic("p"), " = 0.008")),
+                    x = unit(0.4, "npc"), y = unit(0.90, "npc"),
+                    gp = gpar(fontsize = 14, col = "black")))
+B
+
+C = ggplot(data, aes(S, log(RUEzp_D65), color = as.factor(P))) +
+  geom_point(aes(shape = factor(PL)), size = 3, fill = as.factor(data$P), alpha = 0.7) +
+  geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
+  #ggpubr::stat_cor(aes(group = 1), label.y=7.4, label.x=4.5,show.legend = FALSE, p.accuracy=0.001, method = "spearman")+
+  scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
+  scale_y_continuous(limits = c(-2, 8), expand = expansion(mult = c(0, 0)), oob=rescale_none) +
+  theme_bw()+
+  theme(text = element_text(size = 14),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        panel.border = element_rect(fill=NA, colour="black", linetype = "solid", linewidth=0.5),
+        strip.text.x = element_blank(),
+        plot.title = element_blank(),
+        plot.margin=unit(c(0.3, 0.3, 0.3, 0.3),"cm"),
+        axis.text.x = element_text(colour="black", size = 14, angle = 0, vjus = 1),
+        axis.text.y = element_text(colour="black", size = 14, angle = 0),
+        axis.title.x = element_text(angle = 0, vjus = - 1.5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.y = element_text(angle = 90, vjus = .5, size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        #axis.line = element_line(linewidth=0.5, colour = "black"),
+        legend.title = element_text(size = 14),
+        legend.background = element_blank(), 
+        legend.position = "none",
+        legend.key = element_rect(fill = "white", colour = "white"),
+        legend.text = element_text(size = 14))+
+  labs(title = NULL, 
+       x = "S",
+       y = expression(paste("ln RUE"[ZP])))+ 
+  guides(color=guide_legend(title=expression(paste("P-addition\nlevels (µg/L)")), order = 1),
+         shape = guide_legend(title = "HH"), order = 2)+
+  #Add a custom annotation with the updated expression for correlation and p-value
+  annotation_custom(
+    grob = textGrob(expression(paste(italic("r"), " = 0.48, ", italic("p"), " = 0.005")),
+                    x = unit(0.4, "npc"), y = unit(0.90, "npc"),
+                    gp = gpar(fontsize = 14, col = "black")))
+C
+
+
+Fig4<- A / B / C
+
+Fig4<-Fig4+plot_annotation(tag_levels = c("a", "b", "c"), tag_suffix = ')')& 
+  theme(plot.tag = element_text(face="bold"))
+Fig4
+
+
+jpeg(filename = "Fig4.jpeg",
+     width = 5,  
+     height = 7.5,
+     units = "in",
+     res = 600,     
+     quality = 100) 
+plot(Fig4)  
+dev.off()
+##=============================================
 ## Correlation plot (Figure S1)
 ##=============================================
 cols=c("palegreen", "limegreen","forestgreen","darkgreen") 
@@ -970,7 +1098,7 @@ annotation_data <- data.frame(
   y = c(1.5, 1.5))
 
 A = ggscatter(
-  RUE, x = "SDshn_dens", y = "CAS_dens",
+  data, x = "SDshn_dens", y = "CAS_dens",
   color = "P",
   alpha = 0.7,
   size = 3,
@@ -980,7 +1108,6 @@ A = ggscatter(
   scale_colour_manual("P", values = cols, labels = c("0", "10", "100", "1000")) +
   facet_wrap(~PL) +
   geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
-  #stat_cor(label.x = 0.1, method = "spearman") +
   theme(
     strip.background = element_rect(colour = "black", fill = "white"),
     strip.text = element_text(size = 14),
@@ -1005,25 +1132,22 @@ A
 annotation_data <- data.frame(
   PL = c("APL", "NPL"),
   label = c(
-    "italic(r)==-0.05*','~italic(p)==0.85",  
+    "italic(r)==-0.02*','~italic(p)==0.96",  
     "italic(r)==0.02*','~italic(p)==0.95"),
   x = c(9.3, 9.3),
   y = c(3, 3))
 
 B = ggscatter(
-  RUE, x = "S", y = "CAS_dens",
+  data, x = "S", y = "CAS_dens",
   color = "P",
   alpha = 0.7,
   size=3,
-  #add = "reg.line",
-  #shape="P",
   rug=T) +
   scale_y_continuous(limits=c(0, 3.5), expand=c(0,0))+
   scale_x_continuous(limits=c(4, 16.5), expand=c(0,0))+
   scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
   facet_wrap(~PL) +
   geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
-  #stat_cor(label.x=4.3, method = "spearman") +
   theme(strip.background = element_rect(colour="black", fill="white"),
         strip.text = element_text(size = 14),
         axis.text.x = element_text(colour="black", size = 14, vjus = .5,angle = 0),
@@ -1045,25 +1169,22 @@ B
 annotation_data <- data.frame(
   PL = c("APL", "NPL"),
   label = c(
-    "italic(r)==0.01*','~italic(p)==0.96",  
+    "italic(r)==0.01*','~italic(p)==0.94",  
     "italic(r)==0.28*','~italic(p)==0.29"),
   x = c(9, 9),
   y = c(4, 4))
 
 C = ggscatter(
-  RUE, x = "S", y = "SDshn_dens",
+  data, x = "S", y = "SDshn_dens",
   color = "P",
   alpha = 0.7,
   size=3,
-  #add = "reg.line",
-  #shape="P",
   rug=T) +
   scale_y_continuous(limits=c(-1, 4.9), expand=c(0,0))+
   scale_x_continuous(limits=c(4,16.5), expand=c(0,0))+
   scale_colour_manual("P",  values = cols, labels = c("0", "10", "100", "1000"))+
   facet_wrap(~PL) +
   geom_smooth(method = "lm", se = T, color = "#CDC9A5", fill = "#EEEED1", size = 1, alpha = 0.4, linetype = 1) +
-  #stat_cor(label.x=4.3, method = "spearman") +
   theme(strip.background = element_rect(colour="black", fill="white"),
         strip.text = element_text(size = 14),
         axis.text.x = element_text(colour="black", size = 14, vjus = .5,angle = 0),
